@@ -1,10 +1,10 @@
-import sys
 import math
 import random
-import pygame
+import sys
 from enum import Enum
-from typing import List, Tuple, Optional, Set
+from typing import List, Optional, Set, Tuple
 
+import pygame
 
 # ------------------------------
 # Constants & Config
@@ -31,7 +31,6 @@ BLUE = (66, 140, 255)
 WALL_BLUE = (0, 90, 200)
 PELLET_COLOR = (255, 255, 255)
 POWER_COLOR = (0, 255, 200)
-
 
 # ------------------------------
 # Utility helpers
@@ -97,15 +96,15 @@ class Maze:
     def _parse_layout(self) -> None:
         for y, row in enumerate(self.layout):
             for x, ch in enumerate(row):
-                if ch == '#':
+                if ch == "#":
                     self.walls.add((x, y))
-                elif ch == '.':
+                elif ch == ".":
                     self.pellets.add((x, y))
-                elif ch == 'o':
+                elif ch == "o":
                     self.power_pellets.add((x, y))
-                elif ch == 'P':
+                elif ch == "P":
                     self.player_spawn = (x, y)
-                elif ch == 'G':
+                elif ch == "G":
                     self.ghost_spawns.append((x, y))
 
     def in_bounds(self, tile: Vec2) -> bool:
@@ -125,16 +124,18 @@ class Maze:
 
     def draw(self, surface: pygame.Surface, offset: Vec2) -> None:
         ox, oy = offset
-        for (x, y) in self.walls:
-            rect = pygame.Rect(ox + x * TILE_SIZE, oy + y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+        for x, y in self.walls:
+            rect = pygame.Rect(
+                ox + x * TILE_SIZE, oy + y * TILE_SIZE, TILE_SIZE, TILE_SIZE
+            )
             pygame.draw.rect(surface, WALL_BLUE, rect, border_radius=4)
         # pellets
-        for (x, y) in self.pellets:
+        for x, y in self.pellets:
             cx = ox + x * TILE_SIZE + TILE_SIZE // 2
             cy = oy + y * TILE_SIZE + TILE_SIZE // 2
             pygame.draw.circle(surface, PELLET_COLOR, (cx, cy), 3)
         # power pellets
-        for (x, y) in self.power_pellets:
+        for x, y in self.power_pellets:
             cx = ox + x * TILE_SIZE + TILE_SIZE // 2
             cy = oy + y * TILE_SIZE + TILE_SIZE // 2
             pygame.draw.circle(surface, POWER_COLOR, (cx, cy), 6)
@@ -147,7 +148,10 @@ class Player:
     def __init__(self, maze: Maze) -> None:
         self.maze = maze
         self.spawn = maze.player_spawn
-        self.tile_pos: Tuple[float, float] = (float(self.spawn[0]), float(self.spawn[1]))
+        self.tile_pos: Tuple[float, float] = (
+            float(self.spawn[0]),
+            float(self.spawn[1]),
+        )
         self.pixel_pos: Tuple[float, float] = self._to_pixel(self.tile_pos)
         self.dir: Vec2 = (0, 0)
         self.next_dir: Vec2 = (0, 0)
@@ -228,10 +232,13 @@ class Player:
 
     def _at_center(self, center_px: Tuple[int, int]) -> bool:
         return (
-            abs(self.pixel_pos[0] - center_px[0]) < 2 and abs(self.pixel_pos[1] - center_px[1]) < 2
+            abs(self.pixel_pos[0] - center_px[0]) < 2
+            and abs(self.pixel_pos[1] - center_px[1]) < 2
         )
 
-    def eat_at_current_tile(self, pellets: Set[Vec2], power_pellets: Set[Vec2]) -> Tuple[int, bool]:
+    def eat_at_current_tile(
+        self, pellets: Set[Vec2], power_pellets: Set[Vec2]
+    ) -> Tuple[int, bool]:
         # returns (score_gain, power)
         tx, ty = self._to_tile(self.pixel_pos)
         score = 0
@@ -256,13 +263,18 @@ class Player:
 # Ghost
 # ------------------------------
 class Ghost:
-    def __init__(self, maze: Maze, spawn: Vec2, color: Tuple[int, int, int], ai: str) -> None:
+    def __init__(
+        self, maze: Maze, spawn: Vec2, color: Tuple[int, int, int], ai: str
+    ) -> None:
         self.maze = maze
         self.spawn = spawn
         self.color = color
         self.ai = ai  # 'chaser' or 'random'
         self.tile_pos: Tuple[float, float] = (float(spawn[0]), float(spawn[1]))
-        self.pixel_pos: Tuple[float, float] = (self.tile_pos[0] * TILE_SIZE, self.tile_pos[1] * TILE_SIZE)
+        self.pixel_pos: Tuple[float, float] = (
+            self.tile_pos[0] * TILE_SIZE,
+            self.tile_pos[1] * TILE_SIZE,
+        )
         self.dir: Vec2 = (0, 0)
         self.speed_px_per_frame = GHOST_SPEED * TILE_SIZE / FPS
         self.state = GhostState.NORMAL
@@ -303,7 +315,10 @@ class Ghost:
         tx = int(round(self.pixel_pos[0] / TILE_SIZE))
         ty = int(round(self.pixel_pos[1] / TILE_SIZE))
         center_px = (tx * TILE_SIZE, ty * TILE_SIZE)
-        at_center = abs(self.pixel_pos[0] - center_px[0]) < 2 and abs(self.pixel_pos[1] - center_px[1]) < 2
+        at_center = (
+            abs(self.pixel_pos[0] - center_px[0]) < 2
+            and abs(self.pixel_pos[1] - center_px[1]) < 2
+        )
         # if blocked, stop at center
         if not self._can_move(self.dir):
             self.pixel_pos = (center_px[0], center_px[1])
@@ -313,9 +328,12 @@ class Ghost:
             if not options:
                 options = self._available_dirs((tx, ty), avoid_reverse=False)
             if options:
-                if self.ai == 'chaser' and self.state != GhostState.VULNERABLE:
+                if self.ai == "chaser" and self.state != GhostState.VULNERABLE:
                     # choose direction minimizing manhattan distance to player
-                    best = min(options, key=lambda d: manhattan((tx + d[0], ty + d[1]), player_tile))
+                    best = min(
+                        options,
+                        key=lambda d: manhattan((tx + d[0], ty + d[1]), player_tile),
+                    )
                     self.dir = best
                 else:
                     self.dir = random.choice(options)
@@ -323,7 +341,11 @@ class Ghost:
     def _available_dirs(self, tile: Vec2, avoid_reverse: bool) -> List[Vec2]:
         options: List[Vec2] = []
         for d in DIRECTIONS:
-            if avoid_reverse and (-d[0], -d[1]) == self.dir and self._can_move(self.dir):
+            if (
+                avoid_reverse
+                and (-d[0], -d[1]) == self.dir
+                and self._can_move(self.dir)
+            ):
                 continue
             target = (tile[0] + d[0], tile[1] + d[1])
             if self.maze.in_bounds(target) and self.maze.passable(target):
@@ -367,7 +389,9 @@ class Game:
         pygame.init()
         self.maze = Maze()
         self.width_px = self.maze.width * TILE_SIZE + SCREEN_MARGIN * 2
-        self.height_px = self.maze.height * TILE_SIZE + SCREEN_MARGIN * 2 + 40  # HUD area
+        self.height_px = (
+            self.maze.height * TILE_SIZE + SCREEN_MARGIN * 2 + 40
+        )  # HUD area
         self.screen = pygame.display.set_mode((self.width_px, self.height_px))
         pygame.display.set_caption("Pacman (OOP) - Pygame")
         self.clock = pygame.time.Clock()
@@ -380,14 +404,14 @@ class Game:
         ghost_spawns = self._select_ghost_spawns()
         # create at least two ghosts: chaser and random
         self.ghosts: List[Ghost] = [
-            Ghost(self.maze, ghost_spawns[0], RED, 'chaser'),
-            Ghost(self.maze, ghost_spawns[1], CYAN, 'random'),
+            Ghost(self.maze, ghost_spawns[0], RED, "chaser"),
+            Ghost(self.maze, ghost_spawns[1], CYAN, "random"),
         ]
         # optional additional ghosts for flavor
         if len(ghost_spawns) > 2:
-            self.ghosts.append(Ghost(self.maze, ghost_spawns[2], ORANGE, 'random'))
+            self.ghosts.append(Ghost(self.maze, ghost_spawns[2], ORANGE, "random"))
         if len(ghost_spawns) > 3:
-            self.ghosts.append(Ghost(self.maze, ghost_spawns[3], PINK, 'chaser'))
+            self.ghosts.append(Ghost(self.maze, ghost_spawns[3], PINK, "chaser"))
 
         self.score = 0
         self.lives = 3
@@ -400,7 +424,9 @@ class Game:
         # fallback if none tagged as 'G': use near player spawn
         px, py = self.maze.player_spawn
         candidates = [(px + 1, py), (px - 1, py), (px, py + 1), (px, py - 1)]
-        return [c for c in candidates if self.maze.in_bounds(c) and self.maze.passable(c)] or [(px, py)]
+        return [
+            c for c in candidates if self.maze.in_bounds(c) and self.maze.passable(c)
+        ] or [(px, py)]
 
     def reset_round(self) -> None:
         self.player.reset()
@@ -431,7 +457,9 @@ class Game:
         for g in self.ghosts:
             g.update(dt, player_tile)
         # eat pellets
-        add_score, power = self.player.eat_at_current_tile(self.maze.pellets, self.maze.power_pellets)
+        add_score, power = self.player.eat_at_current_tile(
+            self.maze.pellets, self.maze.power_pellets
+        )
         self.score += add_score
         if power:
             self.trigger_power()
@@ -459,7 +487,9 @@ class Game:
         score_surf = self.font_small.render(f"Score: {self.score}", True, WHITE)
         lives_surf = self.font_small.render(f"Lives: {self.lives}", True, WHITE)
         self.screen.blit(score_surf, (SCREEN_MARGIN, 10))
-        self.screen.blit(lives_surf, (self.width_px - SCREEN_MARGIN - lives_surf.get_width(), 10))
+        self.screen.blit(
+            lives_surf, (self.width_px - SCREEN_MARGIN - lives_surf.get_width(), 10)
+        )
 
     def draw(self) -> None:
         self.screen.fill(BLACK)
@@ -493,13 +523,17 @@ class Game:
                     self.player = Player(self.maze)
                     ghost_spawns = self._select_ghost_spawns()
                     self.ghosts = [
-                        Ghost(self.maze, ghost_spawns[0], RED, 'chaser'),
-                        Ghost(self.maze, ghost_spawns[1], CYAN, 'random'),
+                        Ghost(self.maze, ghost_spawns[0], RED, "chaser"),
+                        Ghost(self.maze, ghost_spawns[1], CYAN, "random"),
                     ]
                     if len(ghost_spawns) > 2:
-                        self.ghosts.append(Ghost(self.maze, ghost_spawns[2], ORANGE, 'random'))
+                        self.ghosts.append(
+                            Ghost(self.maze, ghost_spawns[2], ORANGE, "random")
+                        )
                     if len(ghost_spawns) > 3:
-                        self.ghosts.append(Ghost(self.maze, ghost_spawns[3], PINK, 'chaser'))
+                        self.ghosts.append(
+                            Ghost(self.maze, ghost_spawns[3], PINK, "chaser")
+                        )
                     self.score = 0
                     self.lives = 3
                     self.game_over = False
